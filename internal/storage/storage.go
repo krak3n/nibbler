@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 )
 
@@ -48,4 +50,17 @@ type URLReadWriter interface {
 type URL struct {
 	ID  string `db:"id"`
 	URL string `db:"url"`
+}
+
+// GenerateID a new URL ID which is a base64 encoded random stream of bytes of
+// a specific size
+func GenerateID(size int) (string, error) {
+	b := make([]byte, size)
+
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.URLEncoding.EncodeToString(b), nil
 }

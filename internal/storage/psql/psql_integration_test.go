@@ -15,10 +15,12 @@ import (
 // the database
 func TestWriteURL_CreateThenRead(t *testing.T) {
 	ctx := context.Background()
+
 	store := psqltest.NewStore(t)
+	defer psqltest.Truncate(t, store)
 
 	insertURL := &storage.URL{
-		ID:  "foo",
+		ID:  psqltest.GenerateID(t),
 		URL: "http://foo.com",
 	}
 
@@ -34,15 +36,18 @@ func TestWriteURL_CreateThenRead(t *testing.T) {
 // multiple times and not get a new row
 func TestWriteURL_IdempotentURL(t *testing.T) {
 	ctx := context.Background()
-	store := psqltest.NewStore(t)
 
+	store := psqltest.NewStore(t)
+	defer psqltest.Truncate(t, store)
+
+	id := psqltest.GenerateID(t)
 	expected := &storage.URL{
-		ID:  "foo",
+		ID:  id,
 		URL: "http://foo.com",
 	}
 
 	insert1 := &storage.URL{
-		ID:  "foo",
+		ID:  id,
 		URL: "http://foo.com",
 	}
 
@@ -50,7 +55,7 @@ func TestWriteURL_IdempotentURL(t *testing.T) {
 	require.Equal(t, expected, insert1)
 
 	insert2 := &storage.URL{
-		ID:  "bar",
+		ID:  psqltest.GenerateID(t),
 		URL: "http://foo.com",
 	}
 
