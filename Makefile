@@ -1,7 +1,7 @@
 PATH := $(CURDIR)/bin:$(PATH)
 
 DB_HOST            ?= localhost
-DB_NAME            ?= client.store.svc
+DB_NAME            ?= nibbler
 DB_USER            ?= postgres
 DB_PORT            ?= 5432
 DB_PASSWORD        ?= postgres
