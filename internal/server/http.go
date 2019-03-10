@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/krak3n/nibbler/internal/storage"
@@ -43,10 +44,20 @@ func NewHandler(store storage.Store) *Handler {
 // Shorten generates a short URL
 func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h.store.WriteURL(ctx, &storage.URL{})
 }
 
 // Reverse queries the store for a URL and if present reditects the user to the
 // original URL
 func (h *Handler) Reverse(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h.store.ReadURL(ctx, "")
 }

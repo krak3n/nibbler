@@ -30,7 +30,7 @@ type Store interface {
 
 // A URLWriter can write new URLs into a Store
 type URLWriter interface {
-	WirteURL(context.Context, *URL) error
+	WriteURL(context.Context, *URL) error
 }
 
 // A URLReader can read urls from the store based on their short id
