@@ -62,6 +62,37 @@ func (s *Store) WriteURL(ctx context.Context, url *storage.URL) error {
 	})
 }
 
+// ReadURL reads a URL from the Database by ID
+func (s *Store) ReadURL(ctx context.Context, id string) (*storage.URL, error) {
+	var url = new(storage.URL)
+
+	err := s.InTx(func(tx *sqlx.Tx) error {
+		// Prepare the query
+		stmt, err := tx.PrepareNamed(`SELECT * FROM urls WHERE id=:id LIMIT 1`)
+		if err != nil {
+			return err
+		}
+
+		// Ensure we clean up the statement
+		defer func() {
+			if err := stmt.Close(); err != nil {
+				log.Println(err)
+			}
+		}()
+
+		// Execute the query, expect a row to be returned
+		res := stmt.QueryRow(&storage.URL{ID: id})
+		if res.Err() != nil {
+			return err
+		}
+
+		// Scan the row into the struct
+		return res.StructScan(url)
+	})
+
+	return url, err
+}
+
 // InTx runs a given function within a database transaction
 func (s *Store) InTx(fn func(tx *sqlx.Tx) error) error {
 	// Create a transaction

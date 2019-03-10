@@ -5,9 +5,6 @@ import (
 	"fmt"
 )
 
-// UrlsTable stores shortened URLs
-var UrlsTable = "urls"
-
 // DSN is a database data source name, e.g it's connection URL
 type DSN struct {
 	Host    string
@@ -28,12 +25,23 @@ func (dsn DSN) String() string {
 
 // A Store can handle database operations
 type Store interface {
-	URLWriter
+	URLReadWriter
 }
 
 // A URLWriter can write new URLs into a Store
 type URLWriter interface {
-	WirteUrl(context.Context, *URL) error
+	WirteURL(context.Context, *URL) error
+}
+
+// A URLReader can read urls from the store based on their short id
+type URLReader interface {
+	ReadURL(context.Context, string) error
+}
+
+// A URLReadWriter can read and write URLs from the store
+type URLReadWriter interface {
+	URLWriter
+	URLReader
 }
 
 // URL represents a client row
