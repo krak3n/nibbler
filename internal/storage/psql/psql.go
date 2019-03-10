@@ -32,17 +32,24 @@ func New(dsn storage.DSN) (*Store, error) {
 func (s *Store) WriteURL(ctx context.Context, url *storage.URL) error {
 	return s.InTx(func(tx *sqlx.Tx) error {
 		// Insert Query that uses PSQL On Conflict to return the row if there is
-		// a conflict on the ID
+		// a conflict on the URL - here the ID is not important, only the URL
 		qry := `INSERT INTO urls (id, url)
 		VALUES (:id, :url)
-		ON CONFLICT ON CONSTRAINT urls_id_url_key DO UPDATE SET url=EXCLUDED.url
-		RETURNING *`
+		ON CONFLICT (url) DO UPDATE SET url=EXCLUDED.url
+		RETURNING id, url`
 
 		// Preapre the query
 		stmt, err := tx.PrepareNamed(qry)
 		if err != nil {
 			return err
 		}
+
+		// Defer closing statement
+		defer func() {
+			if err := stmt.Close(); err != nil {
+				log.Println(err)
+			}
+		}()
 
 		// Execute the query, expect a row to be returned
 		res := stmt.QueryRow(url)

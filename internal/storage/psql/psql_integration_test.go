@@ -13,7 +13,7 @@ import (
 
 // TestWriteURL_Idempotent ensures we can write the same ID/URL combination
 // multiple times and not get a new row
-func TestWriteURL_Idempotent(t *testing.T) {
+func TestWriteURL_IdempotentURL(t *testing.T) {
 	dsn := storage.DSN{
 		Name:    config.DBName,
 		User:    config.DBUser,
@@ -25,15 +25,24 @@ func TestWriteURL_Idempotent(t *testing.T) {
 	store, err := New(dsn)
 	require.NoError(t, err)
 
-	err = store.WriteURL(context.Background(), &storage.URL{
+	expected := &storage.URL{
 		ID:  "foo",
 		URL: "http://foo.com",
-	})
-	require.NoError(t, err)
+	}
 
-	err = store.WriteURL(context.Background(), &storage.URL{
+	insert1 := &storage.URL{
 		ID:  "foo",
 		URL: "http://foo.com",
-	})
-	require.NoError(t, err)
+	}
+
+	require.NoError(t, store.WriteURL(context.Background(), insert1))
+	require.Equal(t, expected, insert1)
+
+	insert2 := &storage.URL{
+		ID:  "bar",
+		URL: "http://foo.com",
+	}
+
+	require.NoError(t, store.WriteURL(context.Background(), insert2))
+	require.Equal(t, expected, insert2)
 }
