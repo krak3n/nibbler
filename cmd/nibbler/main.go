@@ -33,7 +33,7 @@ func main() {
 	sigC := make(chan os.Signal, 1)
 	signal.Notify(sigC, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
-	srv := server.New(db, server.WithAddress("localhost:4000"))
+	srv := server.New(db, server.WithAddress(":3000"))
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			log.Println(fmt.Sprintf("error starting server: %s", err))
