@@ -1,9 +1,10 @@
 package server
 
 import (
-	"context"
+	"fmt"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/krak3n/nibbler/internal/storage"
 )
 
@@ -20,11 +21,14 @@ func WithAddress(addr string) Option {
 // New constructs a new http server
 func New(store storage.Store, opts ...Option) *http.Server {
 	handler := NewHandler(store)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/shorten", handler.Shorten)
-	mux.HandleFunc("/reverse", handler.Reverse)
+	router := mux.NewRouter()
+	router.HandleFunc("/shorten", handler.Shorten)
+	router.HandleFunc("/{id}", handler.Reverse)
 	srv := &http.Server{
-		Handler: mux,
+		Handler: router,
+	}
+	for _, opt := range opts {
+		opt(srv)
 	}
 	return srv
 }
@@ -45,10 +49,13 @@ func NewHandler(store storage.Store) *Handler {
 func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
 
-	h.store.WriteURL(ctx, &storage.URL{})
+	// h.store.WriteURL(ctx, &storage.URL{})
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf("shorten")))
 }
 
 // Reverse queries the store for a URL and if present reditects the user to the
@@ -56,8 +63,12 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Reverse(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
+	// h.store.ReadURL(ctx, "")
 
-	h.store.ReadURL(ctx, "")
+	vars := mux.Vars(r)
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf("reverse %s", vars["id"])))
 }

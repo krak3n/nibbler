@@ -37,7 +37,7 @@ type URLWriter interface {
 
 // A URLReader can read urls from the store based on their short id
 type URLReader interface {
-	ReadURL(context.Context, string) error
+	ReadURL(context.Context, string) (*URL, error)
 }
 
 // A URLReadWriter can read and write URLs from the store
