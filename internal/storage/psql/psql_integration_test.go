@@ -62,3 +62,21 @@ func TestWriteURL_IdempotentURL(t *testing.T) {
 	require.NoError(t, store.WriteURL(ctx, insert2))
 	require.Equal(t, expected, insert2)
 }
+
+func TestWriteURL_NewID(t *testing.T) {
+	ctx := context.Background()
+
+	store := psqltest.NewStore(t)
+	defer psqltest.Truncate(t, store)
+
+	url := &storage.URL{
+		URL: "http://foo.com",
+	}
+
+	require.NoError(t, store.WriteURL(ctx, url))
+
+	t.Log("url inserted with id:", url.ID)
+
+	require.NotEmpty(t, url.ID)
+	require.Equal(t, "http://foo.com", url.URL)
+}

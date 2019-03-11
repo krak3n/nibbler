@@ -31,6 +31,15 @@ func New(dsn storage.DSN) (*Store, error) {
 // already shortened URL will be returned
 func (s *Store) WriteURL(ctx context.Context, url *storage.URL) error {
 	return s.InTx(func(tx *sqlx.Tx) error {
+		// Generate a new ID if one has not been provided
+		if url.ID == "" {
+			id, err := s.GenerateID(tx)
+			if err != nil {
+				return err
+			}
+			url.ID = id
+		}
+
 		// Insert Query that uses PSQL On Conflict to return the row if there is
 		// a conflict on the URL - here the ID is not important, only the URL
 		qry := `INSERT INTO urls (id, url)
@@ -111,4 +120,35 @@ func (s *Store) InTx(fn func(tx *sqlx.Tx) error) error {
 
 	// Commit the transaction
 	return tx.Commit()
+}
+
+// GenerateID generates a new ID
+func (s *Store) GenerateID(tx *sqlx.Tx) (string, error) {
+	for {
+		stmt, err := tx.PrepareNamed(`SELECT COUNT(*) FROM urls WHERE id=:id`)
+		if err != nil {
+			return "", err
+		}
+
+		// Ensure we clean up the statement
+		defer func() {
+			if err := stmt.Close(); err != nil {
+				log.Println(err)
+			}
+		}()
+
+		id, err := storage.GenerateID(6)
+		if err != nil {
+			return "", err
+		}
+
+		var n int
+		if err := stmt.Get(&n, map[string]interface{}{"id": id}); err != nil {
+			return "", err
+		}
+
+		if n == 0 {
+			return id, nil
+		}
+	}
 }
