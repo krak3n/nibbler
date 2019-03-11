@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -56,14 +55,13 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	vars := mux.Vars(r)
-	if !govalidator.IsURL(vars["url"]) {
+	if !govalidator.IsURL(r.URL.Query().Get("url")) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("invalid url"))
 		return
 	}
 
-	url := &storage.URL{URL: vars["url"]}
+	url := &storage.URL{URL: r.URL.Query().Get("url")}
 	if err := h.store.WriteURL(ctx, url); err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -72,7 +70,7 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("id: %s", url.ID)))
+	w.Write([]byte(url.ID))
 }
 
 // Reverse queries the store for a URL and if present reditects the user to the
