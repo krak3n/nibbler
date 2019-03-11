@@ -1,9 +1,12 @@
 package server
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/gorilla/mux"
 	"github.com/krak3n/nibbler/internal/storage"
 )
@@ -22,10 +25,11 @@ func WithAddress(addr string) Option {
 func New(store storage.Store, opts ...Option) *http.Server {
 	handler := NewHandler(store)
 	router := mux.NewRouter()
-	router.HandleFunc("/shorten", handler.Shorten)
+	router.HandleFunc("/shorten", handler.Shorten).Queries("url", "{url}")
 	router.HandleFunc("/{id}", handler.Reverse)
 	srv := &http.Server{
 		Handler: router,
+		// TODO: timeout options
 	}
 	for _, opt := range opts {
 		opt(srv)
@@ -49,13 +53,26 @@ func NewHandler(store storage.Store) *Handler {
 func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	// ctx, cancel := context.WithCancel(context.Background())
-	// defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// h.store.WriteURL(ctx, &storage.URL{})
+	vars := mux.Vars(r)
+	if !govalidator.IsURL(vars["url"]) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("invalid url"))
+		return
+	}
+
+	url := &storage.URL{URL: vars["url"]}
+	if err := h.store.WriteURL(ctx, url); err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error shortening url"))
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("shorten")))
+	w.Write([]byte(fmt.Sprintf("id: %s", url.ID)))
 }
 
 // Reverse queries the store for a URL and if present reditects the user to the
@@ -63,12 +80,18 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Reverse(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	// ctx, cancel := context.WithCancel(context.Background())
-	// defer cancel()
-	// h.store.ReadURL(ctx, "")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	vars := mux.Vars(r)
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("reverse %s", vars["id"])))
+	url, err := h.store.ReadURL(ctx, vars["id"])
+	if err != nil {
+		// TODO: switch type of error, e.g no rows should 404
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error reversing url"))
+	}
+
+	http.Redirect(w, r, url.URL, http.StatusPermanentRedirect)
 }
